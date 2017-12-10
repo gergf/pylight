@@ -11,10 +11,13 @@ pyLight tries to be as faithful as possible to a real implementation, but withou
 - Dense Layer. Note that the input_shape it is only required in the first layer.
 	`{
  		"type" : "dense", 
- 		"weights" : weights,
+ 		"W" : weights,
+ 		"b" : biases, 
  		"input_shape" : input_shape,
  		"name" : "name"
  	}`
+ 	Note: If you don't want to use biases, set them to None. 
+   
 
 ### Losses 
 
