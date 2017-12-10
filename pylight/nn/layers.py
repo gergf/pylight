@@ -13,15 +13,16 @@ class layer():
         raise NotImplementedError("Please Implement the Backward method") 
 
 class dense(layer):
-    def __init__(self, W, input_shape, trainable=True, name="Dense"):
+    def __init__(self, W, b, input_shape, trainable=True, name="Dense"):
         """
-            Computes Z = dot(X, W)
-            TODO: Add bias code 
+            Computes Z = dot(X, W) + b 
 
             Parameters 
             ----------
                 W : Numpy array with shape (sample_features, hidden_units)
+                b : Numpy array with shape (1, hidden_units)
                 input_shape : Shape of the inputs. Must be equal to sample_features.
+
         """
         assert len(input_shape) == 1, "Error! In dense layers the input shape only can have one dimension: 'features'"
         assert W.shape[0] == input_shape[0], "Error! Input shape and W matrix do not match."
@@ -29,6 +30,11 @@ class dense(layer):
         # Initialization 
         super().__init__(input_shape, trainable, name)
         self.W = W.astype(numpy.float32)
+        self.b = b 
+
+        if not isinstance(self.b, type(None)):
+            assert self.b.shape[0] == self.W.shape[1], "Error! Bias and weights shape do not match."
+            self.b = self.b.astype(numpy.float32) 
 
         # Store variables to make the computation easier 
         self.output_shape = (self.W.shape[1],)
@@ -40,7 +46,7 @@ class dense(layer):
         # Local gradient 
         self.dZ_W = None 
         self.dZ_X = None 
-        self.db_Z = None 
+        self.dZ_b = None 
 
     def forward(self, X): 
         """
@@ -55,6 +61,10 @@ class dense(layer):
 
         self.batch_size = self.X.shape[0]
         self.Z = self.X @ self.W 
+
+        if not isinstance(self.b, type(None)): 
+            self.Z = self.Z + self.b 
+
         return self.Z 
 
     def backward(self, dL_Z):
@@ -82,33 +92,50 @@ class dense(layer):
         # same when the dL/dW is computed a few lines below (;
         self.dZ_W = self.X
 
+        # Local gradient of dZ/db
+        # Z is linearly dependent of the biases. If we increase one bias by one; z increases by one. 
+        # Remember that each bias only contributes to one neuron, so again, we can reduce the non-trivial 
+        # part of the Jacobian matrix to a vector. 
+        self.dZ_b = None if isinstance(self.b, type(None)) else numpy.ones(self.b.shape)
+
         # Output gradient dL/dW 
         # Remember the matrix generated in dZ/dW, now we need to apply the chain rule, or, in other words
         # we need to multiply the rate of change each dZ/dW by the rate of change of dL/dZ
         # dL_Wi,j = sum_{num samples} dL/dZj * dZj/dWi,j
         # Finally, divide by the number of samples to preserve the magnitude of the gradient independently of 
         # the number of samples
-        self.dL_W = self.X.T @ self.dL_Z
-        self.dL_W /= self.batch_size
+        self.dL_W = (self.X.T @ self.dL_Z) / self.batch_size
 
         # Output gradient dL/dX
         # This could be ignored if there are constraints of memory/time, because we can not modify how our 
         # data looks like. Anyways, we compute the gradients to perform future studies about the behaviour of the model 
-        self.dL_X = self.dL_Z @ self.dZ_X.T
+        self.dL_X = (self.dL_Z @ self.dZ_X.T) / self.batch_size
+
+        # Output gradient dL/db 
+        # Because the local gradient dZ/db is a vector of ones, we do not need to perform the vector multiplication 
+        # We only need to reduce dL/dZ among the samples axis, so each sample contributes, and divide by the batch size
+        self.dL_b = self.dL_Z.sum(axis=0) / self.batch_size
 
         return self.dL_X
 
     def get_trainable_vars_and_grads(self):
         """ Returns a list with (var, grad) for all the trainable variables of this layers """
         vars_and_grads = [(self.W, self.dL_W)]
+        
+        if not isinstance(self.b, type(None)): 
+            vars_and_grads.append((self.b, self.dL_b))
+
         return vars_and_grads
 
     def set_trainable_vars(self, new_vars): 
         """ 
             Updates the variables. The list is expected to have form:
-                [weights]
+                [weights, biases]
         """
         self.W = new_vars[0]
+
+        if not isinstance(self.b, type(None)): 
+            self.b = new_vars[1]
 
 if __name__ == '__main__':
     print("This script is not mean to be run.")

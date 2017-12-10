@@ -42,7 +42,9 @@ class neural_network():
 
 			# Layers 
 			if   op_type == "dense": 
-				graph_op = layers.dense(operation["W"],
+				graph_op = layers.dense(
+								  operation["W"],
+								  operation["b"],
 								  op_input_shape, 
 								  op_name)
 
