@@ -20,7 +20,7 @@ class dense(layer):
             Parameters 
             ----------
                 W : Numpy array with shape (sample_features, hidden_units)
-                b : Numpy array with shape (1, hidden_units)
+                b : Numpy array with shape (hidden_units)
                 input_shape : Shape of the inputs. Must be equal to sample_features.
 
         """
@@ -134,7 +134,7 @@ class dense(layer):
         """
         self.W = new_vars[0]
 
-        if not isinstance(self.b, type(None)): 
+        if len(new_vars) == 2: 
             self.b = new_vars[1]
 
 if __name__ == '__main__':
